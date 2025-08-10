@@ -8,13 +8,11 @@ def _build_db_uri():
     url = os.environ.get('DATABASE_URL')
     if not url:
         return 'sqlite:///reservations.db'
-    # Render/Heroku style postgres:// -> postgresql+psycopg2://
     if url.startswith('postgres://'):
-        url = url.replace('postgres://', 'postgresql+psycopg2://', 1)
-    elif url.startswith('postgresql://') and 'psycopg2' not in url:
-        url = url.replace('postgresql://', 'postgresql+psycopg2://', 1)
+        url = url.replace('postgres://', 'postgresql+psycopg://', 1)
+    elif url.startswith('postgresql://') and '+psycopg' not in url:
+        url = url.replace('postgresql://', 'postgresql+psycopg://', 1)
     return url
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret')
 app.config['SQLALCHEMY_DATABASE_URI'] = _build_db_uri()
