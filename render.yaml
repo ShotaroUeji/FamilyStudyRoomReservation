@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: family-studyroom
+    env: python
+    buildCommand: pip install -r requirements.txt && flask --app app.py db-create || true
+    startCommand: gunicorn -c gunicorn.conf.py app:app
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: studyroom-db
+          property: connectionString
+    healthCheckPath: /healthz
+    autoDeploy: true
+databases:
+  - name: studyroom-db

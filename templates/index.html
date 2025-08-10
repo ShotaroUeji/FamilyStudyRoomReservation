@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+{% block content %}
+<section class="grid">
+  <div>
+    <h2>新規予約</h2>
+    <form action="{{ url_for('reserve') }}" method="post" class="card">
+      <label>名前
+        <input type="text" name="user" required placeholder="例: 太郎">
+      </label>
+      <label>開始
+        <input type="datetime-local" name="start" required>
+      </label>
+      <label>終了
+        <input type="datetime-local" name="end" required>
+      </label>
+      <label>メモ（任意）
+        <input type="text" name="note" placeholder="例: テスト勉強">
+      </label>
+      <button type="submit">予約する</button>
+    </form>
+    <p class="hint">※ 重複チェック済み。同じ時間帯の予約は保存できません。</p>
+  </div>
+
+  <div>
+    <h2>カレンダー</h2>
+    <div id="calendar"></div>
+  </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const calendarEl = document.getElementById('calendar');
+  const calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'timeGridWeek',
+    locale: 'ja',
+    slotMinTime: "06:00:00",
+    slotMaxTime: "24:00:00",
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'dayGridMonth,timeGridWeek,timeGridDay'
+    },
+    events: '/events',
+    eventOverlap: false,
+    nowIndicator: true,
+    height: 'auto',
+  });
+  calendar.render();
+});
+</script>
+{% endblock %}
