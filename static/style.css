@@ -24,3 +24,13 @@ footer { padding: 16px; color: var(--muted); }
 @media (max-width: 900px) {
   .grid { grid-template-columns: 1fr; }
 }
+/* カレンダーヘッダー背景・文字色調整 */
+.fc-col-header-cell {
+  background-color: #222 !important; /* 暗めの背景 */
+  border-color: #444 !important;     /* 枠線も暗めに */
+}
+
+.fc-col-header-cell-cushion {
+  color: #f0f0f0 !important; /* 明るい白系文字 */
+  font-weight: bold;
+}
