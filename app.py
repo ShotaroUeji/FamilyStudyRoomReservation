@@ -1,30 +1,39 @@
 import os
 from datetime import datetime
 from dateutil import parser as dateparser
-from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, abort
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import inspect
 
-# --- DB URI構築 ---
+# =============================
+# DB URLの構築（必ずPostgreSQLを使う）
+# =============================
 def _build_db_uri():
     url = os.environ.get('DATABASE_URL')
     if not url:
-        return 'sqlite:///reservations.db'
+        return 'sqlite:///reservations.db'  # ローカル開発用
     if url.startswith('postgres://'):
         url = url.replace('postgres://', 'postgresql+psycopg://', 1)
     elif url.startswith('postgresql://') and '+psycopg' not in url:
         url = url.replace('postgresql://', 'postgresql+psycopg://', 1)
     return url
 
-# --- Flask設定 ---
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret')
 app.config['SQLALCHEMY_DATABASE_URI'] = _build_db_uri()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# 接続切断対策
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_pre_ping": True,
+    "pool_recycle": 300  # 5分ごとに再接続
+}
+
 db = SQLAlchemy(app)
 
-# --- モデル ---
+# =============================
+# モデル定義
+# =============================
 class Reservation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user = db.Column(db.String(80), nullable=False)
@@ -40,12 +49,23 @@ class Reservation(db.Model):
             "end": self.end_time.isoformat(),
         }
 
-# --- 起動時に一度だけテーブル作成 ---
+# =============================
+# 起動時に必ずテーブル作成
+# =============================
 with app.app_context():
     db.create_all()
     print("[INIT] Tables:", inspect(db.engine).get_table_names())
 
-# --- ユーティリティ ---
+@app.route("/initdb")
+def init_db():
+    with app.app_context():
+        db.create_all()
+        tables = inspect(db.engine).get_table_names()
+        return jsonify({"status": "ok", "tables": tables})
+
+# =============================
+# ユーティリティ関数
+# =============================
 def overlaps(start, end, exclude_id=None):
     """Return True if [start, end) overlaps an existing reservation"""
     q = Reservation.query.filter(
@@ -56,7 +76,9 @@ def overlaps(start, end, exclude_id=None):
         q = q.filter(Reservation.id != exclude_id)
     return db.session.query(q.exists()).scalar()
 
-# --- ルート ---
+# =============================
+# ルート定義
+# =============================
 @app.route('/healthz')
 def healthz():
     return 'ok', 200
@@ -111,14 +133,12 @@ def list_reservations():
     res = Reservation.query.order_by(Reservation.start_time.asc()).all()
     return render_template('list.html', reservations=res)
 
-# --- CLIコマンド ---
 @app.cli.command('init-db')
 def init_db_cmd():
     """Initialize the database: flask init-db"""
     db.create_all()
     print('Initialized the database.')
 
-# --- メイン ---
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
