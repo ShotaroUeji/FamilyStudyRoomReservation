@@ -5,6 +5,8 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, f
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import inspect
 from flask import abort
+from flask import jsonify
+
 def _build_db_uri():
     url = os.environ.get('DATABASE_URL')
     if not url:
@@ -36,16 +38,13 @@ def ensure_tables():
 
 ensure_tables()  # モジュール読み込み時に一度実行
 
-@app.route("/admin/init")
-def admin_init():
-    # 簡易トークンチェック。Render の環境変数 SECRET_KEY を使う
-    token = request.args.get("token")
-    if not token or token != app.config["SECRET_KEY"]:
-        abort(403)
-    ensure_tables()
+@app.route("/initdb")
+def init_db():
     with app.app_context():
-        insp = inspect(db.engine)
-        return {"ok": True, "tables": insp.get_table_names()}
+        db.create_all()
+        tables = inspect(db.engine).get_table_names()
+        return jsonify({"status": "ok", "tables": tables})
+
 class Reservation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user = db.Column(db.String(80), nullable=False)
