@@ -3,7 +3,8 @@ from datetime import datetime
 from dateutil import parser as dateparser
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 from flask_sqlalchemy import SQLAlchemy
-
+from sqlalchemy import inspect
+from flask import abort
 def _build_db_uri():
     url = os.environ.get('DATABASE_URL')
     if not url:
@@ -22,6 +23,29 @@ db = SQLAlchemy(app)
 # 起動時に一度だけテーブルを作成
 with app.app_context():
     db.create_all()
+    
+def ensure_tables():
+    try:
+        with app.app_context():
+            print("[init] creating tables if not exist ...")
+            db.create_all()
+            insp = inspect(db.engine)
+            print("[init] tables now:", insp.get_table_names())
+    except Exception as e:
+        print("[init] create_all failed:", e)
+
+ensure_tables()  # モジュール読み込み時に一度実行
+
+@app.route("/admin/init")
+def admin_init():
+    # 簡易トークンチェック。Render の環境変数 SECRET_KEY を使う
+    token = request.args.get("token")
+    if not token or token != app.config["SECRET_KEY"]:
+        abort(403)
+    ensure_tables()
+    with app.app_context():
+        insp = inspect(db.engine)
+        return {"ok": True, "tables": insp.get_table_names()}
 class Reservation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user = db.Column(db.String(80), nullable=False)
