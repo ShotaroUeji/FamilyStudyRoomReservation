@@ -23,7 +23,7 @@ db = SQLAlchemy(app)
 # 起動時に一度だけテーブルを作成
 with app.app_context():
     db.create_all()
-    
+    print("[INIT] Tables:", inspect(db.engine).get_table_names())
 def ensure_tables():
     try:
         with app.app_context():
